@@ -9,9 +9,6 @@ dist/
 .env.local
 .env.*.local
 
-# Firebase config with secrets
-src/firebase/config.js
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
