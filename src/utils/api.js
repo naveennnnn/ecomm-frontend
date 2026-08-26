@@ -1,6 +1,6 @@
 import { refreshAccessToken, logout } from '../firebase/authService'
 
-const BACKEND_URL = 'http://localhost:8080'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
 
 /**
  * Make an authenticated API call with automatic token refresh.
