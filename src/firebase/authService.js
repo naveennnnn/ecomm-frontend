@@ -150,6 +150,23 @@ export async function refreshAccessToken() {
 }
 
 /**
+ * Get the current authenticated user's profile (including role).
+ * Returns null if not authenticated.
+ */
+export async function getCurrentUser() {
+  const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
+    method: 'GET',
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  return response.json()
+}
+
+/**
  * Logout — tells backend to clear cookies and invalidate refresh token
  */
 export async function logout() {

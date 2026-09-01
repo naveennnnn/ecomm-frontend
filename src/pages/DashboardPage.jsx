@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { logout } from '../firebase/authService'
+import { logout, getCurrentUser } from '../firebase/authService'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
 
@@ -12,6 +12,13 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    getCurrentUser().then((user) => {
+      if (user && user.role === 'ADMIN') setIsAdmin(true)
+    })
+  }, [])
 
   useEffect(() => {
     fetchProducts()
@@ -95,12 +102,22 @@ function DashboardPage() {
             </form>
 
             {/* Actions */}
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors whitespace-nowrap"
-            >
-              Logout
-            </button>
+            <div className="flex gap-2">
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/admin/products')}
+                  className="px-4 py-2 text-sm font-medium text-gray-900 bg-yellow-400 rounded-lg hover:bg-yellow-500 transition-colors whitespace-nowrap"
+                >
+                  + Add Product
+                </button>
+              )}
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors whitespace-nowrap"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
