@@ -151,13 +151,32 @@ export async function refreshAccessToken() {
 
 /**
  * Get the current authenticated user's profile (including role).
+ *
+ * If the access token is missing/expired the backend returns 401. In that case
+ * we transparently try to refresh using the (longer-lived) refresh cookie and
+ * retry once. Only if the refresh also fails do we treat the user as logged out.
+ *
  * Returns null if not authenticated.
  */
 export async function getCurrentUser() {
-  const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
-    method: 'GET',
-    credentials: 'include',
-  })
+  const fetchMe = () =>
+    fetch(`${BACKEND_URL}/api/auth/me`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+
+  let response = await fetchMe()
+
+  // Access token expired/missing — attempt a silent refresh, then retry once.
+  if (response.status === 401) {
+    try {
+      await refreshAccessToken()
+      response = await fetchMe()
+    } catch {
+      // Refresh token also invalid/expired — genuinely logged out.
+      return null
+    }
+  }
 
   if (!response.ok) {
     return null
