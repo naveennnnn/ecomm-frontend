@@ -15,10 +15,16 @@ function DashboardPage() {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
+    // Verify the session on load (silently refreshes an expired access token).
+    // If there is no valid session, send the user back to login.
     getCurrentUser().then((user) => {
-      if (user && user.role === 'ADMIN') setIsAdmin(true)
+      if (!user) {
+        navigate('/', { replace: true })
+        return
+      }
+      if (user.role === 'ADMIN') setIsAdmin(true)
     })
-  }, [])
+  }, [navigate])
 
   useEffect(() => {
     fetchProducts()

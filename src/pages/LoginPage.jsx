@@ -1,10 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loginWithEmail, signUpWithEmail, loginWithGoogle } from '../firebase/authService'
+import { loginWithEmail, signUpWithEmail, loginWithGoogle, getCurrentUser } from '../firebase/authService'
 
 function LoginPage() {
   const navigate = useNavigate()
   const [isSignUp, setIsSignUp] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  // On load, ask the backend whether a session already exists (this also
+  // triggers a silent token refresh if the access token expired). If so,
+  // skip the login form and go straight to the dashboard.
+  useEffect(() => {
+    let active = true
+    getCurrentUser()
+      .then((user) => {
+        if (active && user) {
+          navigate('/dashboard', { replace: true })
+        }
+      })
+      .finally(() => {
+        if (active) setCheckingSession(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [navigate])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -55,6 +75,15 @@ function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // While we check for an existing session, avoid flashing the login form.
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    )
   }
 
   return (
