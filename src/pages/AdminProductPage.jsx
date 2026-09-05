@@ -20,8 +20,8 @@ function AdminProductPage() {
     brand: '',
     stock: '',
   })
-  const [image, setImage] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
+  const [images, setImages] = useState([])
+  const [imagePreviews, setImagePreviews] = useState([])
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -50,10 +50,10 @@ function AdminProductPage() {
   }
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      setImage(file)
-      setImagePreview(URL.createObjectURL(file))
+    const files = Array.from(e.target.files || [])
+    if (files.length) {
+      setImages(files)
+      setImagePreviews(files.map((file) => URL.createObjectURL(file)))
     }
   }
 
@@ -62,8 +62,8 @@ function AdminProductPage() {
     setError('')
     setSuccess('')
 
-    if (!image) {
-      setError('Please select a product image')
+    if (!images.length) {
+      setError('Please select at least one product image')
       return
     }
 
@@ -78,7 +78,7 @@ function AdminProductPage() {
       formData.append('category', form.category)
       formData.append('brand', form.brand)
       formData.append('stock', form.stock)
-      formData.append('image', image)
+      images.forEach((file) => formData.append('images', file))
 
       const response = await fetch(`${BACKEND_URL}/api/products`, {
         method: 'POST',
@@ -101,8 +101,8 @@ function AdminProductPage() {
         brand: '',
         stock: '',
       })
-      setImage(null)
-      setImagePreview(null)
+      setImages([])
+      setImagePreviews([])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -280,20 +280,37 @@ function AdminProductPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Product Images <span className="text-gray-400 font-normal">(select one or more)</span>
+              </label>
               <input
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleImageChange}
                 className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
               />
-              {imagePreview && (
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="mt-3 h-32 w-32 object-contain border rounded-lg bg-gray-50"
-                />
+              {imagePreviews.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {imagePreviews.map((src, i) => (
+                    <div key={i} className="relative">
+                      <img
+                        src={src}
+                        alt={`Preview ${i + 1}`}
+                        className="h-24 w-24 object-contain border border-amber-200 rounded-lg bg-amber-50/50"
+                      />
+                      {i === 0 && (
+                        <span className="absolute bottom-1 left-1 text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
+              <p className="mt-1 text-xs text-gray-400">
+                The first image is used as the thumbnail.
+              </p>
             </div>
 
             <button

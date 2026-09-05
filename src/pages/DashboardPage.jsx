@@ -9,10 +9,18 @@ const categories = ['All', 'Earrings', 'Bangles', 'Necklaces', 'Rings', 'Bracele
 function DashboardPage() {
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
+  const [latest, setLatest] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeSearch, setActiveSearch] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [slide, setSlide] = useState(0)
+
+  // Show the full product grid only when the user is browsing a specific
+  // category (not "All") or has performed a search. Otherwise show the
+  // "latest uploads" carousel on the home view.
+  const isBrowsing = selectedCategory !== 'All' || activeSearch !== ''
 
   useEffect(() => {
     // Verify the session on load (silently refreshes an expired access token).
@@ -26,46 +34,102 @@ function DashboardPage() {
     })
   }, [navigate])
 
+  // Load the latest 10 products once for the home carousel.
   useEffect(() => {
-    fetchProducts()
+    const loadLatest = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/products/latest`, {
+          credentials: 'include',
+        })
+        const data = await response.json()
+        setLatest(Array.isArray(data) ? data : [])
+      } catch (err) {
+        console.error('Failed to fetch latest products:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadLatest()
+  }, [])
+
+  // Fetch the grid products only when browsing a category.
+  useEffect(() => {
+    if (selectedCategory === 'All') return
+    const fetchByCategory = async () => {
+      setLoading(true)
+      try {
+        const response = await fetch(
+          `${BACKEND_URL}/api/products/category/${selectedCategory}`,
+          { credentials: 'include' }
+        )
+        const data = await response.json()
+        setProducts(Array.isArray(data) ? data : [])
+      } catch (err) {
+        console.error('Failed to fetch products:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchByCategory()
   }, [selectedCategory])
 
-  const fetchProducts = async () => {
-    setLoading(true)
-    try {
-      let url = `${BACKEND_URL}/api/products`
-      if (selectedCategory !== 'All') {
-        url = `${BACKEND_URL}/api/products/category/${selectedCategory}`
-      }
-      const response = await fetch(url, { credentials: 'include' })
-      const data = await response.json()
-      setProducts(data)
-    } catch (err) {
-      console.error('Failed to fetch products:', err)
-    } finally {
-      setLoading(false)
-    }
+  // Keep the slide index in range if the latest list changes.
+  useEffect(() => {
+    setSlide(0)
+  }, [latest.length])
+
+  // Auto-advance the carousel while on the home view.
+  useEffect(() => {
+    if (isBrowsing || latest.length <= 1) return
+    const timer = setInterval(() => {
+      setSlide((prev) => (prev + 1) % latest.length)
+    }, 3500)
+    return () => clearInterval(timer)
+  }, [isBrowsing, latest.length])
+
+  const nextSlide = () => setSlide((prev) => (prev + 1) % latest.length)
+  const prevSlide = () => setSlide((prev) => (prev - 1 + latest.length) % latest.length)
+
+  // Touch/swipe support for the carousel.
+  const [touchStartX, setTouchStartX] = useState(null)
+  const handleTouchStart = (e) => setTouchStartX(e.touches[0].clientX)
+  const handleTouchEnd = (e) => {
+    if (touchStartX === null) return
+    const delta = e.changedTouches[0].clientX - touchStartX
+    if (delta > 50) prevSlide()
+    else if (delta < -50) nextSlide()
+    setTouchStartX(null)
   }
 
   const handleSearch = async (e) => {
     e.preventDefault()
-    if (!searchQuery.trim()) {
-      fetchProducts()
+    const query = searchQuery.trim()
+    if (!query) {
+      // Empty search returns to the home carousel view.
+      setActiveSearch('')
+      setSelectedCategory('All')
       return
     }
+    setActiveSearch(query)
     setLoading(true)
     try {
       const response = await fetch(
-        `${BACKEND_URL}/api/products/search?q=${encodeURIComponent(searchQuery)}`,
+        `${BACKEND_URL}/api/products/search?q=${encodeURIComponent(query)}`,
         { credentials: 'include' }
       )
       const data = await response.json()
-      setProducts(data)
+      setProducts(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error('Search failed:', err)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCategorySelect = (cat) => {
+    setActiveSearch('')
+    setSearchQuery('')
+    setSelectedCategory(cat)
   }
 
   const handleLogout = async () => {
@@ -136,7 +200,7 @@ function DashboardPage() {
             {categories.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => handleCategorySelect(cat)}
                 className={`whitespace-nowrap hover:text-amber-500 transition-colors ${
                   selectedCategory === cat
                     ? 'text-amber-600 font-semibold border-b-2 border-amber-400'
@@ -152,70 +216,167 @@ function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Products Grid */}
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
           </div>
-        ) : products.length === 0 ? (
+        ) : isBrowsing ? (
+          /* Full product grid — shown only when searching or browsing a category */
+          <>
+            <h2 className="text-lg font-semibold text-gray-700 mb-4">
+              {activeSearch ? `Results for "${activeSearch}"` : selectedCategory}
+            </h2>
+            {products.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="text-gray-400 text-lg">No products found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    getDiscount={getDiscount}
+                    onClick={() => navigate(`/product/${product.id}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : latest.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-400 text-lg">No products found</p>
+            <p className="text-gray-400 text-lg">No products yet</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {products.map((product) => (
+          /* Home view — auto-playing carousel of the latest 10 uploads */
+          <section>
+            <h2 className="text-center text-2xl font-semibold text-gray-700 tracking-wide mb-1">
+              New Arrivals
+            </h2>
+            <p className="text-center text-sm text-gray-400 mb-6">
+              Our latest handpicked pieces
+            </p>
+
+            <div className="relative max-w-4xl mx-auto">
+              {/* Track */}
               <div
-                key={product.id}
-                className="bg-white rounded-lg shadow-sm border border-amber-100 hover:shadow-lg hover:border-amber-300 transition-all cursor-pointer group overflow-hidden"
+                className="overflow-hidden rounded-2xl border border-amber-100 shadow-sm bg-white"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
               >
-                {/* Image */}
-                <div className="aspect-square p-4 flex items-center justify-center bg-amber-50/50 overflow-hidden">
-                  <img
-                    src={product.imageUrl || 'https://via.placeholder.com/200'}
-                    alt={product.name}
-                    className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-
-                {/* Details */}
-                <div className="p-3 space-y-1">
-                  <p className="text-xs text-amber-500 uppercase tracking-wide">{product.brand}</p>
-                  <h3 className="text-sm font-medium text-gray-800 line-clamp-2">
-                    {product.name}
-                  </h3>
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs bg-amber-400 text-white px-1.5 py-0.5 rounded font-medium">
-                      {product.rating.toFixed(1)} ★
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      ({product.reviewCount})
-                    </span>
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-lg font-bold text-gray-800">
-                      ₹{product.price.toLocaleString()}
-                    </span>
-                    {product.originalPrice > product.price && (
-                      <>
-                        <span className="text-sm text-gray-400 line-through">
-                          ₹{product.originalPrice.toLocaleString()}
-                        </span>
-                        <span className="text-sm text-amber-600 font-medium">
-                          {getDiscount(product.originalPrice, product.price)}% off
-                        </span>
-                      </>
-                    )}
-                  </div>
+                <div
+                  className="flex transition-transform duration-700 ease-in-out"
+                  style={{ transform: `translateX(-${slide * 100}%)` }}
+                >
+                  {latest.map((product) => (
+                    <div
+                      key={product.id}
+                      className="w-full flex-shrink-0 cursor-pointer"
+                      onClick={() => navigate(`/product/${product.id}`)}
+                    >
+                      <div className="aspect-[16/9] flex items-center justify-center bg-amber-50/50 p-6">
+                        <img
+                          src={product.imageUrl || 'https://via.placeholder.com/400'}
+                          alt={product.name}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                      <div className="p-4 text-center border-t border-amber-100">
+                        <p className="text-xs text-amber-500 uppercase tracking-wide">
+                          {product.brand}
+                        </p>
+                        <h3 className="text-base font-medium text-gray-800">{product.name}</h3>
+                        <p className="text-lg font-bold text-gray-800 mt-1">
+                          ₹{product.price.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Arrows */}
+              <button
+                onClick={prevSlide}
+                aria-label="Previous"
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 border border-amber-200 text-amber-600 shadow hover:bg-amber-100 transition-colors"
+              >
+                ‹
+              </button>
+              <button
+                onClick={nextSlide}
+                aria-label="Next"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 border border-amber-200 text-amber-600 shadow hover:bg-amber-100 transition-colors"
+              >
+                ›
+              </button>
+
+              {/* Dots */}
+              <div className="flex justify-center gap-2 mt-4">
+                {latest.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSlide(i)}
+                    aria-label={`Go to slide ${i + 1}`}
+                    className={`h-2 rounded-full transition-all ${
+                      i === slide ? 'w-6 bg-amber-400' : 'w-2 bg-amber-200'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
         )}
       </main>
+    </div>
+  )
+}
+
+function ProductCard({ product, getDiscount, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white rounded-lg shadow-sm border border-amber-100 hover:shadow-lg hover:border-amber-300 transition-all cursor-pointer group overflow-hidden"
+    >
+      {/* Image */}
+      <div className="aspect-square p-4 flex items-center justify-center bg-amber-50/50 overflow-hidden">
+        <img
+          src={product.imageUrl || 'https://via.placeholder.com/200'}
+          alt={product.name}
+          className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+
+      {/* Details */}
+      <div className="p-3 space-y-1">
+        <p className="text-xs text-amber-500 uppercase tracking-wide">{product.brand}</p>
+        <h3 className="text-sm font-medium text-gray-800 line-clamp-2">{product.name}</h3>
+
+        {/* Rating */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs bg-amber-400 text-white px-1.5 py-0.5 rounded font-medium">
+            {product.rating.toFixed(1)} ★
+          </span>
+          <span className="text-xs text-gray-400">({product.reviewCount})</span>
+        </div>
+
+        {/* Price */}
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-lg font-bold text-gray-800">
+            ₹{product.price.toLocaleString()}
+          </span>
+          {product.originalPrice > product.price && (
+            <>
+              <span className="text-sm text-gray-400 line-through">
+                ₹{product.originalPrice.toLocaleString()}
+              </span>
+              <span className="text-sm text-amber-600 font-medium">
+                {getDiscount(product.originalPrice, product.price)}% off
+              </span>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
