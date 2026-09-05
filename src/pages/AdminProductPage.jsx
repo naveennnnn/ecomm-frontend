@@ -4,7 +4,7 @@ import { getCurrentUser, logout } from '../firebase/authService'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
 
-const categories = ['Electronics', 'Fashion', 'Home', 'Books', 'Sports', 'Beauty']
+const categories = ['Earrings', 'Bangles', 'Necklaces', 'Rings', 'Bracelets', 'Pendants', 'Anklets']
 
 function AdminProductPage() {
   const navigate = useNavigate()
@@ -16,7 +16,7 @@ function AdminProductPage() {
     description: '',
     price: '',
     originalPrice: '',
-    category: 'Electronics',
+    category: 'Earrings',
     brand: '',
     stock: '',
   })
@@ -97,7 +97,7 @@ function AdminProductPage() {
         description: '',
         price: '',
         originalPrice: '',
-        category: 'Electronics',
+        category: 'Earrings',
         brand: '',
         stock: '',
       })
@@ -117,21 +117,21 @@ function AdminProductPage() {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#fffdf7]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
       </div>
     )
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#fffdf7] px-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-          <p className="mt-2 text-gray-600">You need admin privileges to access this page.</p>
+          <h1 className="text-2xl font-bold text-gray-700">Access Denied</h1>
+          <p className="mt-2 text-gray-500">You need admin privileges to access this page.</p>
           <button
             onClick={() => navigate('/dashboard')}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            className="mt-4 px-4 py-2 bg-amber-400 text-white rounded-lg hover:bg-amber-500"
           >
             Back to Dashboard
           </button>
@@ -141,25 +141,26 @@ function AdminProductPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#fffdf7]">
       {/* Header */}
-      <header className="bg-slate-900 text-white shadow-md">
+      <header className="bg-white text-gray-800 shadow-sm border-b border-amber-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <h1 className="text-xl font-bold">
-              E<span className="text-yellow-400">comm</span>
-              <span className="ml-2 text-sm font-normal text-gray-300">Admin</span>
+            <h1 className="text-xl font-bold tracking-wide">
+              <span className="text-amber-500">OM</span>{' '}
+              <span className="text-gray-700">Jewelleries</span>
+              <span className="ml-2 text-sm font-normal text-gray-400">Admin</span>
             </h1>
             <div className="flex gap-3">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="px-4 py-2 text-sm font-medium bg-slate-700 rounded-lg hover:bg-slate-600"
+                className="px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 border border-amber-200 rounded-lg hover:bg-amber-200"
               >
                 Dashboard
               </button>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium bg-slate-700 rounded-lg hover:bg-slate-600"
+                className="px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 border border-amber-200 rounded-lg hover:bg-amber-200"
               >
                 Logout
               </button>
@@ -170,8 +171,8 @@ function AdminProductPage() {
 
       {/* Form */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-sm p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Add New Product</h2>
+        <div className="bg-white rounded-xl shadow-sm p-8 border border-amber-100">
+          <h2 className="text-2xl font-bold text-gray-700 mb-6">Add New Product</h2>
 
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -193,8 +194,8 @@ function AdminProductPage() {
                 required
                 value={form.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Wireless Headphones"
+                className="w-full px-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
+                placeholder="Gold Jhumka Earrings"
               />
             </div>
 
@@ -205,8 +206,8 @@ function AdminProductPage() {
                 rows={3}
                 value={form.description}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                placeholder="Noise cancelling bluetooth headphones with 30hr battery"
+                className="w-full px-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
+                placeholder="22K gold-plated jhumka earrings with pearl drops"
               />
             </div>
 
@@ -220,7 +221,7 @@ function AdminProductPage() {
                   required
                   value={form.price}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
                   placeholder="2999"
                 />
               </div>
@@ -233,7 +234,7 @@ function AdminProductPage() {
                   required
                   value={form.originalPrice}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
                   placeholder="4999"
                 />
               </div>
@@ -246,7 +247,7 @@ function AdminProductPage() {
                   name="category"
                   value={form.category}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  className="w-full px-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white"
                 >
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -260,8 +261,8 @@ function AdminProductPage() {
                   type="text"
                   value={form.brand}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Sony"
+                  className="w-full px-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  placeholder="Tanishq"
                 />
               </div>
               <div>
@@ -272,7 +273,7 @@ function AdminProductPage() {
                   required
                   value={form.stock}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
                   placeholder="50"
                 />
               </div>
@@ -284,7 +285,7 @@ function AdminProductPage() {
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
-                className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
               />
               {imagePreview && (
                 <img
@@ -298,7 +299,7 @@ function AdminProductPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-3 bg-amber-400 text-white font-medium rounded-lg hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Adding Product...' : 'Add Product'}
             </button>

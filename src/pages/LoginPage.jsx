@@ -80,29 +80,30 @@ function LoginPage() {
   // While we check for an existing session, avoid flashing the login form.
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#fffdf7]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#fffdf7] px-4 py-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
+          <h1 className="text-3xl font-bold tracking-wide">
+            <span className="text-amber-500">OM</span>{' '}
+            <span className="text-gray-700">Jewelleries</span>
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-500">
             {isSignUp
-              ? 'Sign up to start shopping'
+              ? 'Create an account to begin'
               : 'Sign in to your account'}
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white shadow-lg rounded-xl p-8 space-y-6">
+        <div className="bg-white shadow-lg rounded-xl p-8 space-y-6 border border-amber-100">
           {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -114,7 +115,7 @@ function LoginPage() {
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-amber-200 rounded-lg shadow-sm bg-white text-gray-700 font-medium hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -162,7 +163,7 @@ function LoginPage() {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                    className="mt-1 block w-full px-4 py-3 border border-amber-200 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 transition-colors"
                     placeholder="John Doe"
                   />
                 </div>
@@ -177,7 +178,7 @@ function LoginPage() {
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                    className="mt-1 block w-full px-4 py-3 border border-amber-200 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 transition-colors"
                     placeholder="+91 9876543210"
                   />
                 </div>
@@ -192,7 +193,7 @@ function LoginPage() {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     rows={2}
-                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors resize-none"
+                    className="mt-1 block w-full px-4 py-3 border border-amber-200 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 transition-colors resize-none"
                     placeholder="123 Main St, City, State"
                   />
                 </div>
@@ -209,7 +210,7 @@ function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                className="mt-1 block w-full px-4 py-3 border border-amber-200 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 transition-colors"
                 placeholder="you@example.com"
               />
             </div>
@@ -224,7 +225,7 @@ function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                className="mt-1 block w-full px-4 py-3 border border-amber-200 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 transition-colors"
                 placeholder="••••••••"
                 minLength={6}
               />
@@ -241,7 +242,7 @@ function LoginPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                  className="mt-1 block w-full px-4 py-3 border border-amber-200 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300 transition-colors"
                   placeholder="••••••••"
                   minLength={6}
                 />
@@ -251,7 +252,7 @@ function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-white bg-amber-400 hover:bg-amber-500 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}
             </button>
@@ -268,7 +269,7 @@ function LoginPage() {
                 setError('')
                 setConfirmPassword('')
               }}
-              className="text-indigo-600 hover:text-indigo-500 font-medium"
+              className="text-amber-600 hover:text-amber-500 font-medium"
             >
               {isSignUp ? 'Sign In' : 'Sign Up'}
             </button>
