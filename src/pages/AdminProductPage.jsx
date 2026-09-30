@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getCurrentUser, logout } from '../firebase/authService'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+import { apiCall } from '../utils/api'
 
 const categories = ['Earrings', 'Bangles', 'Necklaces', 'Rings', 'Bracelets', 'Pendants', 'Anklets']
 
@@ -80,16 +81,8 @@ function AdminProductPage() {
       formData.append('stock', form.stock)
       images.forEach((file) => formData.append('images', file))
 
-      const response = await fetch(`${BACKEND_URL}/api/products`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData, // don't set Content-Type — browser sets multipart boundary
-      })
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ message: 'Failed to add product' }))
-        throw new Error(err.message || 'Failed to add product')
-      }
+      // apiCall attaches the Bearer token and refreshes on 401.
+      await apiCall('/api/products', { method: 'POST', body: formData })
 
       setSuccess('Product added successfully!')
       setForm({

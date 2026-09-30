@@ -5,6 +5,12 @@ import {
   sendEmailVerification,
 } from 'firebase/auth'
 import { auth, googleProvider } from './config'
+import {
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  clearTokens,
+} from '../utils/tokenStore'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
 
@@ -21,10 +27,9 @@ export async function signUpWithEmail(email, password, userDetails) {
   const idToken = await userCredential.user.getIdToken()
   const response = await fetch(`${BACKEND_URL}/api/auth/signup`, {
     method: 'POST',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`,
+      Authorization: `Bearer ${idToken}`,
     },
     body: JSON.stringify({
       name: userDetails.name,
@@ -42,10 +47,9 @@ export async function signUpWithEmail(email, password, userDetails) {
 }
 
 /**
- * Sign in with email and password
- * - Checks email verified
- * - Sends Firebase token to backend
- * - Backend sets HttpOnly cookies with access + refresh tokens
+ * Sign in with email and password.
+ * Backend returns { accessToken, refreshToken, profileComplete } which we store
+ * (access token in memory, refresh token in localStorage).
  */
 export async function loginWithEmail(email, password) {
   const userCredential = await signInWithEmailAndPassword(auth, email, password)
@@ -57,10 +61,9 @@ export async function loginWithEmail(email, password) {
   const idToken = await userCredential.user.getIdToken()
   const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
     method: 'POST',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`,
+      Authorization: `Bearer ${idToken}`,
     },
   })
 
@@ -70,13 +73,13 @@ export async function loginWithEmail(email, password) {
   }
 
   const data = await response.json()
+  setTokens(data)
   return { user: userCredential.user, ...data }
 }
 
 /**
- * Sign in/up with Google OAuth
- * - No email verification needed
- * - Backend checks if user exists: sets cookies if yes, or profileComplete=false if new
+ * Sign in/up with Google OAuth.
+ * Existing users get tokens; new users get profileComplete=false (no tokens yet).
  */
 export async function loginWithGoogle() {
   const userCredential = await signInWithPopup(auth, googleProvider)
@@ -84,10 +87,9 @@ export async function loginWithGoogle() {
 
   const response = await fetch(`${BACKEND_URL}/api/auth/google`, {
     method: 'POST',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`,
+      Authorization: `Bearer ${idToken}`,
     },
   })
 
@@ -97,11 +99,12 @@ export async function loginWithGoogle() {
   }
 
   const data = await response.json()
+  if (data.accessToken) setTokens(data)
   return { user: userCredential.user, ...data }
 }
 
 /**
- * Complete profile for Google sign-up users
+ * Complete profile for Google sign-up users. Returns tokens on success.
  */
 export async function completeProfile(profileDetails) {
   const user = auth.currentUser
@@ -110,10 +113,9 @@ export async function completeProfile(profileDetails) {
   const idToken = await user.getIdToken()
   const response = await fetch(`${BACKEND_URL}/api/auth/complete-profile`, {
     method: 'POST',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`,
+      Authorization: `Bearer ${idToken}`,
     },
     body: JSON.stringify({
       phone: profileDetails.phone,
@@ -126,54 +128,64 @@ export async function completeProfile(profileDetails) {
     throw new Error(err.message || 'Failed to complete profile')
   }
 
-  return response.json()
+  const data = await response.json()
+  setTokens(data)
+  return data
 }
 
 /**
- * Refresh the access token using the HttpOnly refresh cookie
- * The browser sends the cookie automatically with credentials: 'include'
+ * Exchange the stored refresh token for a fresh access token.
+ * Refresh tokens are rotated: the response contains a NEW refresh token which
+ * replaces the old one. Sends the token in the request body (no cookies).
  */
 export async function refreshAccessToken() {
-  const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-
-  if (!response.ok) {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) {
     throw new Error('Session expired. Please login again.')
   }
 
-  return response.json()
+  const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refreshToken }),
+  })
+
+  if (!response.ok) {
+    // Refresh failed (expired, reuse detected, or revoked) — clear local state.
+    clearTokens()
+    throw new Error('Session expired. Please login again.')
+  }
+
+  const data = await response.json()
+  setTokens(data)
+  return data
 }
 
 /**
  * Get the current authenticated user's profile (including role).
  *
- * If the access token is missing/expired the backend returns 401. In that case
- * we transparently try to refresh using the (longer-lived) refresh cookie and
- * retry once. Only if the refresh also fails do we treat the user as logged out.
- *
+ * Sends the in-memory access token as a Bearer header. If it is missing/expired
+ * (401), attempt a silent refresh using the stored refresh token, then retry once.
  * Returns null if not authenticated.
  */
 export async function getCurrentUser() {
-  const fetchMe = () =>
-    fetch(`${BACKEND_URL}/api/auth/me`, {
+  const fetchMe = () => {
+    const token = getAccessToken()
+    return fetch(`${BACKEND_URL}/api/auth/me`, {
       method: 'GET',
-      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
+  }
 
   let response = await fetchMe()
 
-  // Access token expired/missing — attempt a silent refresh, then retry once.
   if (response.status === 401) {
     try {
       await refreshAccessToken()
       response = await fetchMe()
     } catch {
-      // Refresh token also invalid/expired — genuinely logged out.
       return null
     }
   }
@@ -186,15 +198,20 @@ export async function getCurrentUser() {
 }
 
 /**
- * Logout — tells backend to clear cookies and invalidate refresh token
+ * Logout — tells the backend to revoke the refresh token chain, then clears
+ * local tokens.
  */
 export async function logout() {
+  const refreshToken = getRefreshToken()
   try {
     await fetch(`${BACKEND_URL}/api/auth/logout`, {
       method: 'POST',
-      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
     })
   } catch {
-    // Best effort — even if this fails, user navigates away
+    // Best effort — even if this fails, user navigates away.
+  } finally {
+    clearTokens()
   }
 }
