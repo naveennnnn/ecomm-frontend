@@ -1,32 +1,35 @@
 import { refreshAccessToken, logout } from '../firebase/authService'
+import { getAccessToken } from './tokenStore'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
 
 /**
  * Make an authenticated API call with automatic token refresh.
- * The access_token cookie is sent automatically by the browser.
+ * Attaches the in-memory access token as a Bearer header. On 401 it tries to
+ * refresh (rotating refresh token) once, then retries.
+ *
+ * Note: does not set Content-Type when the body is FormData, so the browser can
+ * set the multipart boundary itself.
  */
 export async function apiCall(endpoint, options = {}) {
-  const makeRequest = async () => {
-    return fetch(`${BACKEND_URL}${endpoint}`, {
-      ...options,
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    })
+  const makeRequest = () => {
+    const token = getAccessToken()
+    const isFormData = options.body instanceof FormData
+    const headers = {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    }
+    return fetch(`${BACKEND_URL}${endpoint}`, { ...options, headers })
   }
 
   let response = await makeRequest()
 
-  // If 401, try refreshing the token (refresh cookie is sent automatically)
   if (response.status === 401) {
     try {
       await refreshAccessToken()
       response = await makeRequest()
     } catch {
-      // Refresh failed — session expired
       await logout()
       window.location.href = '/'
       throw new Error('Session expired. Please login again.')
